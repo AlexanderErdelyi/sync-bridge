@@ -234,7 +234,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
                 {
                     var commentCreate = new CommentCreate 
                     { 
-                        Text = $"{comment.Text}\n\n_Added by {comment.Author} on {comment.CreatedDate:yyyy-MM-dd HH:mm}_"
+                        Text = comment.Text
                     };
                     
                     var added = await _workItemClient.AddCommentAsync(

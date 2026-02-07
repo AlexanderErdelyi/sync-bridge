@@ -1,5 +1,6 @@
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
+using SyncBridge.Core.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace SyncBridge.Core.Services;
@@ -76,10 +77,17 @@ public class SyncEngine
                 try
                 {
                     // Only sync back if the item wasn't originally from source
-                    if (change.Entity.Source != sourceAdapter.SystemName)
+                    // Check both Source field and ExternalId to avoid duplicates
+                    if (change.Entity.Source != sourceAdapter.SystemName && 
+                        !ExternalIdHelper.IsFromSystem(change.Entity.ExternalId, sourceAdapter.SystemName))
                     {
                         await SyncChange(change, sourceAdapter, cancellationToken);
                         result.ItemsSynced++;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Skipping sync of {ChangeId} from {Target} to {Source} - already from source",
+                            change.Entity.Id, targetAdapter.SystemName, sourceAdapter.SystemName);
                     }
                 }
                 catch (Exception ex)
@@ -123,7 +131,7 @@ public class SyncEngine
                     // If the work item doesn't have an ExternalId yet, use its source system ID
                     if (string.IsNullOrEmpty(workItem.ExternalId))
                     {
-                        workItem.ExternalId = $"{workItem.Source}:{workItem.Id}";
+                        workItem.ExternalId = ExternalIdHelper.CreateExternalId(workItem.Source, workItem.Id);
                     }
                     
                     if (workItem.Comments.Any())

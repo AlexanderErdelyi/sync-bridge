@@ -1,4 +1,5 @@
 @page
+@using SyncBridge.Web.Helpers
 @model WorkItemDetailsModel
 @{
     ViewData["Title"] = "Work Item Details";
@@ -62,7 +63,7 @@
                 <hr />
                 <div>
                     <h6 class="text-muted">Description:</h6>
-                    <p>@Model.WorkItem.Description</p>
+                    <p>@TextHelper.StripHtmlTags(Model.WorkItem.Description)</p>
                 </div>
             </div>
         </div>
@@ -84,7 +85,7 @@
                                     <h6 class="mb-1">@comment.Author</h6>
                                     <small class="text-muted">@comment.CreatedDate.ToString("g")</small>
                                 </div>
-                                <p class="mb-1">@comment.Text</p>
+                                <p class="mb-1">@TextHelper.StripHtmlTags(comment.Text)</p>
                                 @if (!string.IsNullOrEmpty(comment.Source))
                                 {
                                     <small class="text-muted">
