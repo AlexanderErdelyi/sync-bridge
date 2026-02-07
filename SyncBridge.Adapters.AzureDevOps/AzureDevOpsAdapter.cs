@@ -269,7 +269,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
     {
         var workItem = new Core.Models.WorkItem
         {
-            Id = azureWorkItem.Id.ToString()!,
+            Id = azureWorkItem.Id?.ToString() ?? string.Empty,
             Source = SystemName,
             Title = GetFieldValue<string>(azureWorkItem, "System.Title") ?? string.Empty,
             Description = GetFieldValue<string>(azureWorkItem, "System.Description") ?? string.Empty,
