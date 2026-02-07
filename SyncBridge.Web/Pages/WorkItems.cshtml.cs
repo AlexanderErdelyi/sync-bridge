@@ -5,6 +5,7 @@ using SyncBridge.Adapters.AzureDevOps;
 using SyncBridge.Adapters.Crm.Mock;
 using SyncBridge.Adapters.ServiceDeskPlus;
 using SyncBridge.Core.Configuration;
+using SyncBridge.Core.Helpers;
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
 using SyncBridge.Core.Services;
@@ -165,7 +166,7 @@ public class WorkItemsModel : PageModel
             // Set ExternalId for cross-system tracking
             if (createdItem is WorkItem createdWorkItem && string.IsNullOrEmpty(createdWorkItem.ExternalId))
             {
-                createdWorkItem.ExternalId = $"{targetSystem}:{createdWorkItem.Id}";
+                createdWorkItem.ExternalId = ExternalIdHelper.CreateExternalId(targetSystem, createdWorkItem.Id);
             }
 
             // If sync is enabled, sync to other systems

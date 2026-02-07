@@ -5,6 +5,7 @@ using SyncBridge.Adapters.AzureDevOps;
 using SyncBridge.Adapters.Crm.Mock;
 using SyncBridge.Adapters.ServiceDeskPlus;
 using SyncBridge.Core.Configuration;
+using SyncBridge.Core.Helpers;
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
 using System.Text.Json;
@@ -169,7 +170,7 @@ public class WorkItemDetailsModel : PageModel
                         // Set ExternalId for cross-system tracking
                         if (string.IsNullOrEmpty(workItem.ExternalId))
                         {
-                            workItem.ExternalId = $"{systemName}:{workItemId}";
+                            workItem.ExternalId = ExternalIdHelper.CreateExternalId(systemName, workItemId);
                         }
                         
                         await otherAdapter.Initialize(CancellationToken.None);
@@ -239,7 +240,7 @@ public class WorkItemDetailsModel : PageModel
             // Set ExternalId for cross-system tracking
             if (string.IsNullOrEmpty(workItem.ExternalId))
             {
-                workItem.ExternalId = $"{systemName}:{workItemId}";
+                workItem.ExternalId = ExternalIdHelper.CreateExternalId(systemName, workItemId);
             }
 
             // Sync to all other systems

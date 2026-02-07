@@ -15,8 +15,11 @@ public static class TextHelper
         if (string.IsNullOrWhiteSpace(html))
             return string.Empty;
 
-        // Remove HTML tags
-        var stripped = Regex.Replace(html, "<.*?>", string.Empty);
+        // Remove HTML tags - using a more robust pattern that handles attributes, self-closing tags, etc.
+        var stripped = Regex.Replace(html, @"<[^>]+>|</[^>]+>", string.Empty, RegexOptions.Compiled);
+        
+        // Remove any remaining angle brackets that might be part of incomplete tags
+        stripped = Regex.Replace(stripped, @"[<>]", string.Empty, RegexOptions.Compiled);
         
         // Decode common HTML entities
         stripped = System.Net.WebUtility.HtmlDecode(stripped);

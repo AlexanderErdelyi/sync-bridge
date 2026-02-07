@@ -1,5 +1,6 @@
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
+using SyncBridge.Core.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace SyncBridge.Core.Services;
@@ -78,8 +79,7 @@ public class SyncEngine
                     // Only sync back if the item wasn't originally from source
                     // Check both Source field and ExternalId to avoid duplicates
                     bool isFromSource = change.Entity.Source == sourceAdapter.SystemName;
-                    bool hasSourceExternalId = !string.IsNullOrEmpty(change.Entity.ExternalId) && 
-                                               change.Entity.ExternalId.StartsWith($"{sourceAdapter.SystemName}:");
+                    bool hasSourceExternalId = ExternalIdHelper.IsFromSystem(change.Entity.ExternalId, sourceAdapter.SystemName);
                     
                     if (!isFromSource && !hasSourceExternalId)
                     {
@@ -133,7 +133,7 @@ public class SyncEngine
                     // If the work item doesn't have an ExternalId yet, use its source system ID
                     if (string.IsNullOrEmpty(workItem.ExternalId))
                     {
-                        workItem.ExternalId = $"{workItem.Source}:{workItem.Id}";
+                        workItem.ExternalId = ExternalIdHelper.CreateExternalId(workItem.Source, workItem.Id);
                     }
                     
                     if (workItem.Comments.Any())
