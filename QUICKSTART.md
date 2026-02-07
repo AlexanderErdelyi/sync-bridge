@@ -16,7 +16,100 @@ cd sync-bridge
 dotnet build
 ```
 
-## Step 2: Configure
+## Step 2: Run the Web Interface
+
+The easiest way to get started is with the web interface:
+
+```bash
+cd SyncBridge.Web
+dotnet run
+```
+
+Then open your browser and navigate to **https://localhost:5001** (or http://localhost:5000).
+
+## Step 3: Configure Through the Web UI
+
+### Azure DevOps Configuration
+
+1. Click **Configuration** in the navigation menu
+2. In the **Azure DevOps** section, enter:
+   - **Organization URL**: `https://dev.azure.com/YOUR-ORG`
+   - **Personal Access Token (PAT)**: Your PAT token
+   - **Project**: Your project name
+3. Click **Save Azure DevOps Config**
+
+#### Getting Azure DevOps PAT
+
+1. Go to https://dev.azure.com/YOUR-ORG
+2. Click User Settings (top right) → Personal Access Tokens
+3. Create new token with "Work Items (Read & Write)" scope
+4. Copy the token (you won't see it again!)
+
+### ServiceDesk Plus Configuration
+
+1. In the **ServiceDesk Plus** section, enter:
+   - **Base URL**: `https://your-instance.servicedeskplus.com`
+   - **API Key**: Your API key
+   - **Technician Key**: Your technician key
+2. Click **Save ServiceDesk Config**
+
+#### Getting ServiceDesk Plus API Keys
+
+1. Log into ServiceDesk Plus as admin
+2. Go to Admin → API → Generate API Key
+3. Copy both API Key and Technician Key
+
+### Sync Configuration
+
+1. In the **Sync Configuration** section:
+   - **Poll Interval**: 60 seconds (how often to check for changes)
+   - **Batch Size**: 100 (max items per sync)
+   - **Sync Comments**: ✓ Enabled
+2. Click **Save Sync Config**
+
+## Step 4: Test Your Configuration
+
+1. Navigate to the **Testing** page
+2. Click **Test All Connections** to verify adapters can connect
+3. Select an adapter and click **Retrieve Work Items** to see recent items
+4. Click **Test Sync** to perform a test synchronization
+
+## Step 5: Create and Sync Work Items
+
+### Create a Work Item
+
+1. Navigate to the **Work Items** page
+2. Click **Create Work Item**
+3. Fill in the details:
+   - Select target system (AzureDevOps, ServiceDeskPlus, or MockCRM)
+   - Enter title: "Test Work Item"
+   - Enter description
+   - Set type, priority, and state
+4. Check **Automatically sync to other systems**
+5. Click **Create & Sync**
+
+The work item will be created and automatically synced to other configured systems!
+
+### Add Comments
+
+1. Click **View** on any work item
+2. Scroll to the **Comments** section
+3. Enter your name and comment
+4. Check **Sync comment to other systems**
+5. Click **Add Comment & Sync**
+
+The comment will be synced to all configured systems.
+
+## Step 6: Monitor Sync Status
+
+Return to the **Dashboard** to:
+- View last sync results
+- See active adapters and mappings
+- Trigger manual synchronization with **Trigger Manual Sync** button
+
+## Alternative: CLI/Background Service
+
+For running as a background service without the web interface:
 
 ```bash
 cd SyncBridge.CLI

@@ -1,0 +1,171 @@
+@page
+@model TestingModel
+@{
+    ViewData["Title"] = "Testing";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="bi bi-clipboard-check-fill"></i> Testing & Diagnostics</h1>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Test Connections</h5>
+                </div>
+                <div class="card-body">
+                    <p>Test connectivity to configured adapters</p>
+                    <form method="post" asp-page-handler="TestConnections">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plug"></i> Test All Connections
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Retrieve Data</h5>
+                </div>
+                <div class="card-body">
+                    <p>Retrieve work items from adapters</p>
+                    <form method="post" asp-page-handler="RetrieveData">
+                        <div class="mb-3">
+                            <label class="form-label">Select Adapter</label>
+                            <select class="form-select" name="adapterName">
+                                @foreach (var adapter in Model.Adapters)
+                                {
+                                    <option value="@adapter.SystemName">@adapter.SystemName</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-download"></i> Retrieve Work Items
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Test Sync</h5>
+                </div>
+                <div class="card-body">
+                    <p>Perform a test synchronization</p>
+                    <form method="post" asp-page-handler="TestSync">
+                        <button type="submit" class="btn btn-info w-100">
+                            <i class="bi bi-arrow-repeat"></i> Test Sync
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.ConnectionResults.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="bi bi-check-circle"></i> Connection Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Adapter</th>
+                                    <th>Status</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var result in Model.ConnectionResults)
+                                {
+                                    <tr>
+                                        <td><strong>@result.Key</strong></td>
+                                        <td>
+                                            @if (result.Value.Success)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle-fill"></i> Connected
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-x-circle-fill"></i> Failed
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>@result.Value.Message</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.RetrievedItems.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Retrieved Work Items</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <strong>Found @Model.RetrievedItems.Count work items</strong>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>State</th>
+                                        <th>Priority</th>
+                                        <th>Assigned To</th>
+                                        <th>Comments</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.RetrievedItems)
+                                    {
+                                        <tr>
+                                            <td><code>@item.Id</code></td>
+                                            <td>@item.Title</td>
+                                            <td><span class="badge bg-secondary">@item.Type</span></td>
+                                            <td><span class="badge bg-info">@item.State</span></td>
+                                            <td>@item.Priority</td>
+                                            <td>@item.AssignedTo</td>
+                                            <td>
+                                                @if (item.Comments.Any())
+                                                {
+                                                    <span class="badge bg-primary">@item.Comments.Count</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -5,15 +5,19 @@ A lightweight, extensible platform for bidirectional synchronization between sys
 ## Features
 
 - **Bidirectional Synchronization**: Sync work items, tickets, and comments between systems
+- **Web User Interface**: Modern web-based UI for configuration, testing, and management
 - **Extensible Architecture**: Easy to add new system adapters
 - **Background Service**: Run as a service for automatic synchronization
 - **Azure DevOps Support**: Full integration with Azure DevOps work items
 - **ServiceDesk Plus Support**: Integration with ManageEngine ServiceDesk Plus
 - **Mock CRM**: Testing adapter for development and testing
+- **Interactive Testing**: Test connections and retrieve data directly from the UI
+- **Work Item Management**: Create and sync work items with comments through the web interface
 
 ## Projects
 
 - **SyncBridge.Core**: Core library with interfaces, models, and sync engine
+- **SyncBridge.Web**: Web application with user interface for configuration and management
 - **SyncBridge.CLI**: Command-line interface and service host
 - **SyncBridge.Adapters.AzureDevOps**: Azure DevOps adapter
 - **SyncBridge.Adapters.ServiceDeskPlus**: ServiceDesk Plus adapter
@@ -105,7 +109,46 @@ Configure the service in `appsettings.json`:
 dotnet build
 ```
 
-### Running
+### Running the Web Interface
+
+The easiest way to get started is with the web interface:
+
+```bash
+cd SyncBridge.Web
+dotnet run
+```
+
+Then open your browser and navigate to `https://localhost:5001` (or `http://localhost:5000`).
+
+#### Web Interface Features
+
+The web interface provides:
+
+1. **Dashboard**: Overview of sync status, active adapters, and quick stats
+   - View last sync results
+   - Trigger manual synchronization
+   - Monitor configured adapters
+
+2. **Configuration**: Manage adapter settings
+   - Configure Azure DevOps connection (Organization URL, PAT, Project)
+   - Configure ServiceDesk Plus connection (Base URL, API Key, Technician Key)
+   - Adjust sync settings (poll interval, batch size, comment sync)
+
+3. **Testing & Diagnostics**: Test your configuration
+   - Test connections to all configured adapters
+   - Retrieve work items from specific adapters
+   - Perform test synchronization
+
+4. **Work Items Management**: Create and manage work items
+   - Create new work items in any configured system
+   - Automatically sync work items to other systems
+   - Add comments to work items
+   - Sync comments bidirectionally
+   - View work item details and history
+
+### Running the CLI/Background Service
+
+For running as a background service without the web interface:
 
 ```bash
 cd SyncBridge.CLI
@@ -141,6 +184,83 @@ WorkingDirectory=/path/to/
 [Install]
 WantedBy=multi-user.target
 ```
+
+## Screenshots
+
+### Dashboard
+![Dashboard](https://github.com/user-attachments/assets/cf1bc3e3-540d-480c-9437-daa9c1d000d8)
+
+The main dashboard provides an overview of your sync status, active adapters, and quick access to all features.
+
+### Configuration
+![Configuration](https://github.com/user-attachments/assets/33650212-7c60-4147-b749-979c4ea10a20)
+
+Easily configure your Azure DevOps and ServiceDesk Plus connections, along with sync settings.
+
+### Testing & Diagnostics
+![Testing](https://github.com/user-attachments/assets/71073423-4e06-4adc-9b1b-a7cbe11049b2)
+
+Test connections, retrieve data, and perform test synchronizations to verify your configuration.
+
+### Work Items Management
+![Work Items](https://github.com/user-attachments/assets/91b150c1-6432-4f19-9af5-4402c35b0707)
+
+Create and manage work items with full bidirectional synchronization support.
+
+### Create Work Item
+![Create Work Item](https://github.com/user-attachments/assets/2a8b1bcf-213f-4532-8ae5-fa40816a006a)
+
+Create work items in any configured system and automatically sync them to other systems.
+
+## Usage Examples
+
+### Example 1: Create a Work Item and Sync to DevOps
+
+1. Navigate to the **Work Items** page
+2. Click **Create Work Item**
+3. Fill in the work item details:
+   - Select target system (e.g., Azure DevOps)
+   - Enter title and description
+   - Set type, priority, state, and assignee
+4. Check **Automatically sync to other systems**
+5. Click **Create & Sync**
+
+The work item will be created in Azure DevOps and automatically synced to ServiceDesk Plus and other configured systems.
+
+### Example 2: Add a Comment and Sync
+
+1. Navigate to the **Work Items** page
+2. Click **View** on any work item
+3. Scroll to the **Comments** section
+4. Enter your name and comment text
+5. Check **Sync comment to other systems**
+6. Click **Add Comment & Sync**
+
+The comment will be added to the work item and synced to all configured systems, appearing in Azure DevOps, ServiceDesk Plus, etc.
+
+### Example 3: Test Your Configuration
+
+1. Navigate to the **Testing** page
+2. Click **Test All Connections** to verify all adapters can connect
+3. Select an adapter and click **Retrieve Work Items** to fetch recent items
+4. Click **Test Sync** to perform a test synchronization between systems
+
+### Example 4: Configure Adapters
+
+1. Navigate to the **Configuration** page
+2. Enter your Azure DevOps settings:
+   - Organization URL: `https://dev.azure.com/your-organization`
+   - Personal Access Token (PAT)
+   - Project name
+3. Enter your ServiceDesk Plus settings:
+   - Base URL
+   - API Key
+   - Technician Key
+4. Adjust sync settings:
+   - Poll interval (how often to check for changes)
+   - Batch size (max items per sync)
+   - Enable/disable comment synchronization
+5. Click **Save** on each section
 
 ## Extending with New Adapters
 
