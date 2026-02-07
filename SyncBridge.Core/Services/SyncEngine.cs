@@ -76,10 +76,20 @@ public class SyncEngine
                 try
                 {
                     // Only sync back if the item wasn't originally from source
-                    if (change.Entity.Source != sourceAdapter.SystemName)
+                    // Check both Source field and ExternalId to avoid duplicates
+                    bool isFromSource = change.Entity.Source == sourceAdapter.SystemName;
+                    bool hasSourceExternalId = !string.IsNullOrEmpty(change.Entity.ExternalId) && 
+                                               change.Entity.ExternalId.StartsWith($"{sourceAdapter.SystemName}:");
+                    
+                    if (!isFromSource && !hasSourceExternalId)
                     {
                         await SyncChange(change, sourceAdapter, cancellationToken);
                         result.ItemsSynced++;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Skipping sync of {ChangeId} from {Target} to {Source} - already from source",
+                            change.Entity.Id, targetAdapter.SystemName, sourceAdapter.SystemName);
                     }
                 }
                 catch (Exception ex)
