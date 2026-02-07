@@ -78,10 +78,8 @@ public class SyncEngine
                 {
                     // Only sync back if the item wasn't originally from source
                     // Check both Source field and ExternalId to avoid duplicates
-                    bool isFromSource = change.Entity.Source == sourceAdapter.SystemName;
-                    bool hasSourceExternalId = ExternalIdHelper.IsFromSystem(change.Entity.ExternalId, sourceAdapter.SystemName);
-                    
-                    if (!isFromSource && !hasSourceExternalId)
+                    if (change.Entity.Source != sourceAdapter.SystemName && 
+                        !ExternalIdHelper.IsFromSystem(change.Entity.ExternalId, sourceAdapter.SystemName))
                     {
                         await SyncChange(change, sourceAdapter, cancellationToken);
                         result.ItemsSynced++;
