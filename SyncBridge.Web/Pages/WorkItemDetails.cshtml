@@ -1,0 +1,157 @@
+@page
+@model WorkItemDetailsModel
+@{
+    ViewData["Title"] = "Work Item Details";
+}
+
+<div class="container-fluid">
+    @if (Model.WorkItem != null)
+    {
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-page="WorkItems">Work Items</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.WorkItem.Id</li>
+            </ol>
+        </nav>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-file-earmark-text"></i> @Model.WorkItem.Title
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8"><code>@Model.WorkItem.Id</code></dd>
+
+                            <dt class="col-sm-4">Type:</dt>
+                            <dd class="col-sm-8"><span class="badge bg-secondary">@Model.WorkItem.Type</span></dd>
+
+                            <dt class="col-sm-4">State:</dt>
+                            <dd class="col-sm-8"><span class="badge bg-info">@Model.WorkItem.State</span></dd>
+
+                            <dt class="col-sm-4">Priority:</dt>
+                            <dd class="col-sm-8">
+                                @if (!string.IsNullOrEmpty(Model.WorkItem.Priority))
+                                {
+                                    <span class="badge bg-warning">@Model.WorkItem.Priority</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not set</span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Source:</dt>
+                            <dd class="col-sm-8"><span class="badge bg-success">@Model.WorkItem.Source</span></dd>
+
+                            <dt class="col-sm-4">Assigned To:</dt>
+                            <dd class="col-sm-8">@(Model.WorkItem.AssignedTo ?? "Unassigned")</dd>
+
+                            <dt class="col-sm-4">Last Modified:</dt>
+                            <dd class="col-sm-8">@Model.WorkItem.LastModified.ToString("g")</dd>
+                        </dl>
+                    </div>
+                </div>
+                <hr />
+                <div>
+                    <h6 class="text-muted">Description:</h6>
+                    <p>@Model.WorkItem.Description</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-left-text"></i> Comments (@Model.WorkItem.Comments.Count)
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (Model.WorkItem.Comments.Any())
+                {
+                    <div class="list-group mb-3">
+                        @foreach (var comment in Model.WorkItem.Comments.OrderByDescending(c => c.CreatedDate))
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@comment.Author</h6>
+                                    <small class="text-muted">@comment.CreatedDate.ToString("g")</small>
+                                </div>
+                                <p class="mb-1">@comment.Text</p>
+                                @if (!string.IsNullOrEmpty(comment.Source))
+                                {
+                                    <small class="text-muted">
+                                        <span class="badge bg-secondary">@comment.Source</span>
+                                    </small>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No comments yet.</p>
+                }
+
+                <hr />
+                <h6>Add New Comment</h6>
+                <form method="post" asp-page-handler="AddComment">
+                    <input type="hidden" name="workItemId" value="@Model.WorkItem.Id" />
+                    <input type="hidden" name="systemName" value="@Model.WorkItem.Source" />
+                    <div class="mb-3">
+                        <label for="commentAuthor" class="form-label">Your Name</label>
+                        <input type="text" class="form-control" id="commentAuthor" name="author" 
+                               required placeholder="Enter your name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="commentText" class="form-label">Comment</label>
+                        <textarea class="form-control" id="commentText" name="text" rows="3" 
+                                  required placeholder="Enter your comment"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="syncComment" name="syncComment" checked>
+                        <label class="form-check-label" for="syncComment">
+                            <strong>Sync comment to other systems</strong>
+                        </label>
+                        <div class="form-text">If enabled, this comment will be synced to DevOps and other configured systems</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Add Comment & Sync
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Sync Actions</h5>
+            </div>
+            <div class="card-body">
+                <p>Manually trigger synchronization for this work item</p>
+                <form method="post" asp-page-handler="SyncWorkItem" class="d-inline">
+                    <input type="hidden" name="workItemId" value="@Model.WorkItem.Id" />
+                    <input type="hidden" name="systemName" value="@Model.WorkItem.Source" />
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-arrow-repeat"></i> Sync to All Systems
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Work item not found.
+        </div>
+        <a asp-page="WorkItems" class="btn btn-primary">
+            <i class="bi bi-arrow-left"></i> Back to Work Items
+        </a>
+    }
+</div>

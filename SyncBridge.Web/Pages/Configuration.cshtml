@@ -1,0 +1,124 @@
+@page
+@model ConfigurationModel
+@{
+    ViewData["Title"] = "Configuration";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="bi bi-gear-fill"></i> Configuration</h1>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-microsoft"></i> Azure DevOps</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="SaveAzureDevOps">
+                        <div class="mb-3">
+                            <label for="azureOrgUrl" class="form-label">Organization URL</label>
+                            <input type="text" class="form-control" id="azureOrgUrl" name="OrganizationUrl" 
+                                   value="@Model.AzureDevOpsConfig?.OrganizationUrl" 
+                                   placeholder="https://dev.azure.com/your-organization">
+                            <div class="form-text">Your Azure DevOps organization URL</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="azurePat" class="form-label">Personal Access Token (PAT)</label>
+                            <input type="password" class="form-control" id="azurePat" name="PersonalAccessToken" 
+                                   value="@Model.AzureDevOpsConfig?.PersonalAccessToken" 
+                                   placeholder="Your PAT token">
+                            <div class="form-text">Generate from Azure DevOps User Settings</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="azureProject" class="form-label">Project</label>
+                            <input type="text" class="form-control" id="azureProject" name="Project" 
+                                   value="@Model.AzureDevOpsConfig?.Project" 
+                                   placeholder="YourProject">
+                            <div class="form-text">The project name in Azure DevOps</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Azure DevOps Config
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-wrench"></i> ServiceDesk Plus</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="SaveServiceDesk">
+                        <div class="mb-3">
+                            <label for="sdpBaseUrl" class="form-label">Base URL</label>
+                            <input type="text" class="form-control" id="sdpBaseUrl" name="BaseUrl" 
+                                   value="@Model.ServiceDeskConfig?.BaseUrl" 
+                                   placeholder="https://your-sdp-instance.com">
+                            <div class="form-text">Your ServiceDesk Plus instance URL</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="sdpApiKey" class="form-label">API Key</label>
+                            <input type="password" class="form-control" id="sdpApiKey" name="ApiKey" 
+                                   value="@Model.ServiceDeskConfig?.ApiKey" 
+                                   placeholder="Your API key">
+                            <div class="form-text">API key from ServiceDesk Plus</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="sdpTechKey" class="form-label">Technician Key</label>
+                            <input type="password" class="form-control" id="sdpTechKey" name="TechnicianKey" 
+                                   value="@Model.ServiceDeskConfig?.TechnicianKey" 
+                                   placeholder="Your technician key">
+                            <div class="form-text">Technician key for authentication</div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Save ServiceDesk Config
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Sync Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="SaveSyncConfig">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="pollInterval" class="form-label">Poll Interval (seconds)</label>
+                                <input type="number" class="form-control" id="pollInterval" name="PollIntervalSeconds" 
+                                       value="@Model.SyncConfig?.PollIntervalSeconds" min="10" max="3600">
+                                <div class="form-text">How often to check for changes</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="batchSize" class="form-label">Batch Size</label>
+                                <input type="number" class="form-control" id="batchSize" name="BatchSize" 
+                                       value="@Model.SyncConfig?.BatchSize" min="1" max="1000">
+                                <div class="form-text">Max items per sync batch</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Sync Comments</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="syncComments" name="SyncComments" 
+                                           @(Model.SyncConfig?.SyncComments == true ? "checked" : "")>
+                                    <label class="form-check-label" for="syncComments">
+                                        Enable comment synchronization
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-info">
+                            <i class="bi bi-save"></i> Save Sync Config
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

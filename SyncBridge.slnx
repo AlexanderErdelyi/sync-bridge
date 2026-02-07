@@ -4,4 +4,5 @@
   <Project Path="SyncBridge.Adapters.ServiceDeskPlus/SyncBridge.Adapters.ServiceDeskPlus.csproj" />
   <Project Path="SyncBridge.CLI/SyncBridge.CLI.csproj" />
   <Project Path="SyncBridge.Core/SyncBridge.Core.csproj" />
+  <Project Path="SyncBridge.Web/SyncBridge.Web.csproj" />
 </Solution>

@@ -1,0 +1,138 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">
+                <i class="bi bi-arrow-left-right"></i> Sync Bridge Dashboard
+            </h1>
+            <p class="lead">Bidirectional synchronization platform for Azure DevOps and ServiceDesk Plus</p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Configuration Card -->
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-gear-fill text-primary"></i> Configuration
+                    </h5>
+                    <p class="card-text">Manage adapter settings and sync configurations</p>
+                    <a href="/Configuration" class="btn btn-primary">
+                        <i class="bi bi-gear"></i> Configure
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Card -->
+        <div class="col-md-4">
+            <div class="card h-100 border-success">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-clipboard-check-fill text-success"></i> Testing
+                    </h5>
+                    <p class="card-text">Test connections and retrieve data from adapters</p>
+                    <a href="/Testing" class="btn btn-success">
+                        <i class="bi bi-play-fill"></i> Run Tests
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Items Card -->
+        <div class="col-md-4">
+            <div class="card h-100 border-info">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-list-task text-info"></i> Work Items
+                    </h5>
+                    <p class="card-text">Create and manage work items with sync</p>
+                    <a href="/WorkItems" class="btn btn-info">
+                        <i class="bi bi-plus-circle"></i> Manage Items
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Sync Status Card -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Sync Status</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.LastSyncResult != null)
+                    {
+                        <div class="alert @(Model.LastSyncResult.Success ? "alert-success" : "alert-danger")">
+                            <strong>@(Model.LastSyncResult.Success ? "✓ Success" : "✗ Failed")</strong>
+                            <br/>
+                            Last sync: @Model.LastSyncResult.EndTime.ToString("g")
+                            <br/>
+                            Items synced: @Model.LastSyncResult.ItemsSynced
+                            <br/>
+                            Duration: @Model.LastSyncResult.Duration.TotalSeconds.ToString("F2")s
+                        </div>
+                        @if (Model.LastSyncResult.Errors.Any())
+                        {
+                            <div class="alert alert-warning">
+                                <strong>Errors:</strong>
+                                <ul class="mb-0">
+                                    @foreach (var error in Model.LastSyncResult.Errors)
+                                    {
+                                        <li>@error</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No sync has been performed yet.</p>
+                    }
+                    <form method="post" asp-page-handler="ManualSync">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-repeat"></i> Trigger Manual Sync
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats Card -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h3 class="text-primary">@Model.AdapterCount</h3>
+                            <p class="text-muted mb-0">Active Adapters</p>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h3 class="text-success">@Model.MappingCount</h3>
+                            <p class="text-muted mb-0">Sync Mappings</p>
+                        </div>
+                    </div>
+                    <hr/>
+                    <h6>Configured Adapters:</h6>
+                    <ul class="list-unstyled">
+                        @foreach (var adapter in Model.Adapters)
+                        {
+                            <li><i class="bi bi-check-circle-fill text-success"></i> @adapter.SystemName</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

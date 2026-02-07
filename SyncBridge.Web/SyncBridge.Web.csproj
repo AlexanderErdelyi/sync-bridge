@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SyncBridge.Core\SyncBridge.Core.csproj" />
+    <ProjectReference Include="..\SyncBridge.Adapters.AzureDevOps\SyncBridge.Adapters.AzureDevOps.csproj" />
+    <ProjectReference Include="..\SyncBridge.Adapters.ServiceDeskPlus\SyncBridge.Adapters.ServiceDeskPlus.csproj" />
+    <ProjectReference Include="..\SyncBridge.Adapters.Crm.Mock\SyncBridge.Adapters.Crm.Mock.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
