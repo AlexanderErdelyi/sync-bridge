@@ -1,5 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
+using SyncBridge.Adapters.AzureDevOps;
+using SyncBridge.Adapters.Crm.Mock;
+using SyncBridge.Adapters.ServiceDeskPlus;
+using SyncBridge.Core.Configuration;
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
 using System.Text.Json;
@@ -9,17 +14,66 @@ namespace SyncBridge.Web.Pages;
 public class WorkItemDetailsModel : PageModel
 {
     private readonly ILogger<WorkItemDetailsModel> _logger;
-    private readonly IEnumerable<ISyncAdapter> _adapters;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public WorkItemDetailsModel(
         ILogger<WorkItemDetailsModel> logger,
-        IEnumerable<ISyncAdapter> adapters)
+        ILoggerFactory loggerFactory,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
-        _adapters = adapters;
+        _loggerFactory = loggerFactory;
+        _httpClientFactory = httpClientFactory;
     }
 
     public WorkItem? WorkItem { get; set; }
+
+    private List<ISyncAdapter> GetConfiguredAdapters()
+    {
+        var adapters = new List<ISyncAdapter>();
+
+        // Try to load Azure DevOps config from session
+        var azureConfigJson = HttpContext.Session.GetString("AzureDevOpsConfig");
+        AzureDevOpsConfig? azureConfig = null;
+        if (!string.IsNullOrEmpty(azureConfigJson))
+        {
+            azureConfig = JsonSerializer.Deserialize<AzureDevOpsConfig>(azureConfigJson);
+        }
+
+        if (azureConfig != null)
+        {
+            var adapterConfig = new AdapterConfiguration { AzureDevOps = azureConfig };
+            var options = Options.Create(adapterConfig);
+            adapters.Add(new AzureDevOpsAdapter(
+                _loggerFactory.CreateLogger<AzureDevOpsAdapter>(),
+                options));
+        }
+
+        // Try to load ServiceDesk Plus config from session
+        var serviceDeskJson = HttpContext.Session.GetString("ServiceDeskConfig");
+        ServiceDeskPlusConfig? serviceDeskConfig = null;
+        if (!string.IsNullOrEmpty(serviceDeskJson))
+        {
+            serviceDeskConfig = JsonSerializer.Deserialize<ServiceDeskPlusConfig>(serviceDeskJson);
+        }
+
+        if (serviceDeskConfig != null)
+        {
+            var adapterConfig = new AdapterConfiguration { ServiceDeskPlus = serviceDeskConfig };
+            var options = Options.Create(adapterConfig);
+            var httpClient = _httpClientFactory.CreateClient();
+            adapters.Add(new ServiceDeskPlusAdapter(
+                _loggerFactory.CreateLogger<ServiceDeskPlusAdapter>(),
+                options,
+                httpClient));
+        }
+
+        // Always add Mock CRM
+        adapters.Add(new MockCrmAdapter(_loggerFactory.CreateLogger<MockCrmAdapter>()));
+
+        return adapters;
+    }
 
     public async Task<IActionResult> OnGetAsync(string id, string system)
     {
@@ -36,7 +90,8 @@ public class WorkItemDetailsModel : PageModel
             // If not in session, try to fetch from the adapter
             if (WorkItem == null)
             {
-                var adapter = _adapters.FirstOrDefault(a => a.SystemName == system);
+                var adapters = GetConfiguredAdapters();
+                var adapter = adapters.FirstOrDefault(a => a.SystemName == system);
                 if (adapter != null)
                 {
                     await adapter.Initialize(CancellationToken.None);
@@ -65,10 +120,11 @@ public class WorkItemDetailsModel : PageModel
             _logger.LogInformation("Adding comment to work item {WorkItemId} in {System}",
                 workItemId, systemName);
 
-            var adapter = _adapters.FirstOrDefault(a => a.SystemName == systemName);
+            var adapters = GetConfiguredAdapters();
+            var adapter = adapters.FirstOrDefault(a => a.SystemName == systemName);
             if (adapter == null)
             {
-                TempData["Error"] = $"Adapter '{systemName}' not found.";
+                TempData["Error"] = $"Adapter '{systemName}' not found or not configured.";
                 return RedirectToPage(new { id = workItemId, system = systemName });
             }
 
@@ -103,13 +159,19 @@ public class WorkItemDetailsModel : PageModel
             await adapter.Upsert(workItem, CancellationToken.None);
 
             // If sync is enabled, sync to other systems
-            if (syncComment && _adapters.Count() > 1)
+            if (syncComment && adapters.Count > 1)
             {
-                var otherAdapters = _adapters.Where(a => a.SystemName != systemName).ToList();
+                var otherAdapters = adapters.Where(a => a.SystemName != systemName).ToList();
                 foreach (var otherAdapter in otherAdapters)
                 {
                     try
                     {
+                        // Set ExternalId for cross-system tracking
+                        if (string.IsNullOrEmpty(workItem.ExternalId))
+                        {
+                            workItem.ExternalId = $"{systemName}:{workItemId}";
+                        }
+                        
                         await otherAdapter.Initialize(CancellationToken.None);
                         await otherAdapter.Upsert(workItem, CancellationToken.None);
                         _logger.LogInformation("Comment synced to {System}", otherAdapter.SystemName);
@@ -154,10 +216,11 @@ public class WorkItemDetailsModel : PageModel
             _logger.LogInformation("Syncing work item {WorkItemId} from {System}",
                 workItemId, systemName);
 
-            var sourceAdapter = _adapters.FirstOrDefault(a => a.SystemName == systemName);
+            var adapters = GetConfiguredAdapters();
+            var sourceAdapter = adapters.FirstOrDefault(a => a.SystemName == systemName);
             if (sourceAdapter == null)
             {
-                TempData["Error"] = $"Source adapter '{systemName}' not found.";
+                TempData["Error"] = $"Source adapter '{systemName}' not found or not configured.";
                 return RedirectToPage(new { id = workItemId, system = systemName });
             }
 
@@ -173,8 +236,14 @@ public class WorkItemDetailsModel : PageModel
                 return RedirectToPage(new { id = workItemId, system = systemName });
             }
 
+            // Set ExternalId for cross-system tracking
+            if (string.IsNullOrEmpty(workItem.ExternalId))
+            {
+                workItem.ExternalId = $"{systemName}:{workItemId}";
+            }
+
             // Sync to all other systems
-            var otherAdapters = _adapters.Where(a => a.SystemName != systemName).ToList();
+            var otherAdapters = adapters.Where(a => a.SystemName != systemName).ToList();
             int successCount = 0;
             int failCount = 0;
 

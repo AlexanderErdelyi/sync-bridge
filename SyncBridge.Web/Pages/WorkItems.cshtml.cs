@@ -1,5 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
+using SyncBridge.Adapters.AzureDevOps;
+using SyncBridge.Adapters.Crm.Mock;
+using SyncBridge.Adapters.ServiceDeskPlus;
+using SyncBridge.Core.Configuration;
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
 using SyncBridge.Core.Services;
@@ -10,24 +15,75 @@ namespace SyncBridge.Web.Pages;
 public class WorkItemsModel : PageModel
 {
     private readonly ILogger<WorkItemsModel> _logger;
-    private readonly IEnumerable<ISyncAdapter> _adapters;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly SyncEngine _syncEngine;
 
     public WorkItemsModel(
         ILogger<WorkItemsModel> logger,
-        IEnumerable<ISyncAdapter> adapters,
+        ILoggerFactory loggerFactory,
+        IHttpClientFactory httpClientFactory,
         SyncEngine syncEngine)
     {
         _logger = logger;
-        _adapters = adapters;
+        _loggerFactory = loggerFactory;
+        _httpClientFactory = httpClientFactory;
         _syncEngine = syncEngine;
     }
 
-    public IEnumerable<ISyncAdapter> Adapters => _adapters;
+    public List<ISyncAdapter> Adapters { get; set; } = new();
     public List<WorkItem> WorkItems { get; set; } = new();
+
+    private List<ISyncAdapter> GetConfiguredAdapters()
+    {
+        var adapters = new List<ISyncAdapter>();
+
+        // Try to load Azure DevOps config from session
+        var azureConfigJson = HttpContext.Session.GetString("AzureDevOpsConfig");
+        AzureDevOpsConfig? azureConfig = null;
+        if (!string.IsNullOrEmpty(azureConfigJson))
+        {
+            azureConfig = JsonSerializer.Deserialize<AzureDevOpsConfig>(azureConfigJson);
+        }
+
+        if (azureConfig != null)
+        {
+            var adapterConfig = new AdapterConfiguration { AzureDevOps = azureConfig };
+            var options = Options.Create(adapterConfig);
+            adapters.Add(new AzureDevOpsAdapter(
+                _loggerFactory.CreateLogger<AzureDevOpsAdapter>(),
+                options));
+        }
+
+        // Try to load ServiceDesk Plus config from session
+        var serviceDeskJson = HttpContext.Session.GetString("ServiceDeskConfig");
+        ServiceDeskPlusConfig? serviceDeskConfig = null;
+        if (!string.IsNullOrEmpty(serviceDeskJson))
+        {
+            serviceDeskConfig = JsonSerializer.Deserialize<ServiceDeskPlusConfig>(serviceDeskJson);
+        }
+
+        if (serviceDeskConfig != null)
+        {
+            var adapterConfig = new AdapterConfiguration { ServiceDeskPlus = serviceDeskConfig };
+            var options = Options.Create(adapterConfig);
+            var httpClient = _httpClientFactory.CreateClient();
+            adapters.Add(new ServiceDeskPlusAdapter(
+                _loggerFactory.CreateLogger<ServiceDeskPlusAdapter>(),
+                options,
+                httpClient));
+        }
+
+        // Always add Mock CRM
+        adapters.Add(new MockCrmAdapter(_loggerFactory.CreateLogger<MockCrmAdapter>()));
+
+        return adapters;
+    }
 
     public async Task OnGetAsync()
     {
+        Adapters = GetConfiguredAdapters();
+
         // Load work items from session
         var workItemsJson = HttpContext.Session.GetString("WorkItems");
         if (!string.IsNullOrEmpty(workItemsJson))
@@ -39,7 +95,7 @@ public class WorkItemsModel : PageModel
             // If no items in session, try to load from the first adapter
             try
             {
-                var adapter = _adapters.FirstOrDefault();
+                var adapter = Adapters.FirstOrDefault();
                 if (adapter != null)
                 {
                     await adapter.Initialize(CancellationToken.None);
@@ -76,10 +132,11 @@ public class WorkItemsModel : PageModel
     {
         try
         {
-            var adapter = _adapters.FirstOrDefault(a => a.SystemName == targetSystem);
+            var adapters = GetConfiguredAdapters();
+            var adapter = adapters.FirstOrDefault(a => a.SystemName == targetSystem);
             if (adapter == null)
             {
-                TempData["Error"] = $"Adapter '{targetSystem}' not found.";
+                TempData["Error"] = $"Adapter '{targetSystem}' not found or not configured.";
                 return RedirectToPage();
             }
 
@@ -105,10 +162,16 @@ public class WorkItemsModel : PageModel
 
             _logger.LogInformation("Work item created with ID: {WorkItemId}", createdItem.Id);
 
-            // If sync is enabled, sync to other systems
-            if (syncToDevOps && _adapters.Count() > 1)
+            // Set ExternalId for cross-system tracking
+            if (createdItem is WorkItem createdWorkItem && string.IsNullOrEmpty(createdWorkItem.ExternalId))
             {
-                var otherAdapters = _adapters.Where(a => a.SystemName != targetSystem).ToList();
+                createdWorkItem.ExternalId = $"{targetSystem}:{createdWorkItem.Id}";
+            }
+
+            // If sync is enabled, sync to other systems
+            if (syncToDevOps && adapters.Count > 1)
+            {
+                var otherAdapters = adapters.Where(a => a.SystemName != targetSystem).ToList();
                 foreach (var otherAdapter in otherAdapters)
                 {
                     try

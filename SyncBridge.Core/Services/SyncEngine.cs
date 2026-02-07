@@ -117,11 +117,20 @@ public class SyncEngine
         {
             case ChangeType.Created:
             case ChangeType.Updated:
-                // For work items, also sync comments if present
-                if (change.Entity is WorkItem workItem && workItem.Comments.Any())
+                // For work items, set ExternalId to track across systems
+                if (change.Entity is WorkItem workItem)
                 {
-                    _logger.LogDebug("Syncing work item {Id} with {CommentCount} comments",
-                        workItem.Id, workItem.Comments.Count);
+                    // If the work item doesn't have an ExternalId yet, use its source system ID
+                    if (string.IsNullOrEmpty(workItem.ExternalId))
+                    {
+                        workItem.ExternalId = $"{workItem.Source}:{workItem.Id}";
+                    }
+                    
+                    if (workItem.Comments.Any())
+                    {
+                        _logger.LogDebug("Syncing work item {Id} with {CommentCount} comments",
+                            workItem.Id, workItem.Comments.Count);
+                    }
                 }
                 await targetAdapter.Upsert(change.Entity, cancellationToken);
                 break;

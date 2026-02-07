@@ -1,0 +1,54 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncBridge.Adapters.AzureDevOps", "SyncBridge.Adapters.AzureDevOps\SyncBridge.Adapters.AzureDevOps.csproj", "{2743ADDF-0C76-2948-1F37-8680C9E60E32}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncBridge.Adapters.Crm.Mock", "SyncBridge.Adapters.Crm.Mock\SyncBridge.Adapters.Crm.Mock.csproj", "{43CC1B5D-1B15-ABAE-6DBD-ECDC7DE8D7B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncBridge.Adapters.ServiceDeskPlus", "SyncBridge.Adapters.ServiceDeskPlus\SyncBridge.Adapters.ServiceDeskPlus.csproj", "{5737A31E-E0C0-3F3D-91F8-7053F7BB9913}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncBridge.CLI", "SyncBridge.CLI\SyncBridge.CLI.csproj", "{3D857FE2-1F65-502E-4B1D-992FDA297DEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncBridge.Core", "SyncBridge.Core\SyncBridge.Core.csproj", "{1E9F1615-C4A5-F807-B004-4854B8EA4D6C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncBridge.Web", "SyncBridge.Web\SyncBridge.Web.csproj", "{3CCB9C79-0D38-F4CA-DC80-F2A7F4ED5FB5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2743ADDF-0C76-2948-1F37-8680C9E60E32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2743ADDF-0C76-2948-1F37-8680C9E60E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2743ADDF-0C76-2948-1F37-8680C9E60E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2743ADDF-0C76-2948-1F37-8680C9E60E32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43CC1B5D-1B15-ABAE-6DBD-ECDC7DE8D7B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43CC1B5D-1B15-ABAE-6DBD-ECDC7DE8D7B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43CC1B5D-1B15-ABAE-6DBD-ECDC7DE8D7B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43CC1B5D-1B15-ABAE-6DBD-ECDC7DE8D7B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5737A31E-E0C0-3F3D-91F8-7053F7BB9913}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5737A31E-E0C0-3F3D-91F8-7053F7BB9913}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5737A31E-E0C0-3F3D-91F8-7053F7BB9913}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5737A31E-E0C0-3F3D-91F8-7053F7BB9913}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D857FE2-1F65-502E-4B1D-992FDA297DEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D857FE2-1F65-502E-4B1D-992FDA297DEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D857FE2-1F65-502E-4B1D-992FDA297DEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D857FE2-1F65-502E-4B1D-992FDA297DEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E9F1615-C4A5-F807-B004-4854B8EA4D6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E9F1615-C4A5-F807-B004-4854B8EA4D6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E9F1615-C4A5-F807-B004-4854B8EA4D6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E9F1615-C4A5-F807-B004-4854B8EA4D6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CCB9C79-0D38-F4CA-DC80-F2A7F4ED5FB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CCB9C79-0D38-F4CA-DC80-F2A7F4ED5FB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CCB9C79-0D38-F4CA-DC80-F2A7F4ED5FB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CCB9C79-0D38-F4CA-DC80-F2A7F4ED5FB5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AEE190EC-8F5A-4D98-AE46-D89B5FE58AF8}
+	EndGlobalSection
+EndGlobal

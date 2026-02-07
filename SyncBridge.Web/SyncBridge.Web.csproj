@@ -13,4 +13,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

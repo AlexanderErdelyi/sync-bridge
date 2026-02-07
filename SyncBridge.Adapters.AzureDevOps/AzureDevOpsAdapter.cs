@@ -61,13 +61,14 @@ public class AzureDevOpsAdapter : ISyncAdapter
         try
         {
             // Query for work items updated since the specified date
+            // Note: Azure DevOps requires date-only format (yyyy-MM-dd) for ChangedDate queries
             var wiql = new Wiql
             {
                 Query = $@"
                     SELECT [System.Id], [System.ChangedDate]
                     FROM WorkItems
                     WHERE [System.TeamProject] = '{_config.Project}'
-                    AND [System.ChangedDate] >= '{since:yyyy-MM-ddTHH:mm:ssZ}'
+                    AND [System.ChangedDate] >= '{since:yyyy-MM-dd}'
                     ORDER BY [System.ChangedDate] DESC"
             };
 
@@ -83,7 +84,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
 
                 foreach (var workItem in workItems)
                 {
-                    var syncEntity = ConvertToWorkItem(workItem);
+                    var syncEntity = await ConvertToWorkItem(workItem, cancellationToken);
                     changes.Add(new SyncChange
                     {
                         Entity = syncEntity,
@@ -118,7 +119,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
                 expand: WorkItemExpand.All,
                 cancellationToken: cancellationToken);
 
-            return ConvertToWorkItem(workItem);
+            return await ConvertToWorkItem(workItem, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -137,27 +138,65 @@ public class AzureDevOpsAdapter : ISyncAdapter
 
         try
         {
-            // Check if work item already exists (has external ID)
-            if (!string.IsNullOrEmpty(workItem.ExternalId) && int.TryParse(workItem.Id, out var existingId))
+            // First, try to find existing work item by ExternalId
+            AzureWorkItem? existingWorkItem = null;
+            
+            if (!string.IsNullOrEmpty(workItem.ExternalId))
             {
-                // Update existing work item
-                _logger.LogDebug("Updating Azure DevOps work item {Id}", workItem.Id);
-                var patchDocument = CreatePatchDocument(workItem, isUpdate: true);
+                // Search for work item with matching ExternalId tag
+                var wiql = new Wiql
+                {
+                    Query = $@"
+                        SELECT [System.Id]
+                        FROM WorkItems
+                        WHERE [System.TeamProject] = '{_config.Project}'
+                        AND [System.Tags] CONTAINS 'ExternalId:{workItem.ExternalId}'"
+                };
+
+                var result = await _workItemClient.QueryByWiqlAsync(wiql, cancellationToken: cancellationToken);
+                if (result.WorkItems.Any())
+                {
+                    var existingId = result.WorkItems.First().Id;
+                    existingWorkItem = await _workItemClient.GetWorkItemAsync(existingId, cancellationToken: cancellationToken);
+                }
+            }
+
+            // Check if work item already exists (has ID from Azure DevOps or found by ExternalId)
+            int? idToUpdate = null;
+            
+            if (existingWorkItem != null)
+            {
+                idToUpdate = existingWorkItem.Id;
+            }
+            else if (!string.IsNullOrEmpty(workItem.Id) && int.TryParse(workItem.Id, out var parsedId) && workItem.Source == SystemName)
+            {
+                idToUpdate = parsedId;
+            }
+            
+            if (idToUpdate.HasValue)
+            {
+                // Update existing Azure DevOps work item
+                _logger.LogDebug("Updating Azure DevOps work item {Id}", idToUpdate.Value);
+                
+                // Get the current work item to check its state
+                var current = existingWorkItem ?? await _workItemClient.GetWorkItemAsync(idToUpdate.Value, cancellationToken: cancellationToken);
+                var patchDocument = CreatePatchDocument(workItem, isUpdate: true, currentWorkItem: current);
+                
                 var updated = await _workItemClient.UpdateWorkItemAsync(
                     patchDocument,
-                    existingId,
+                    idToUpdate.Value,
                     cancellationToken: cancellationToken);
 
-                // Add comments if present
+                // Add new comments (comments without ExternalId)
                 await SyncComments(updated.Id!.Value, workItem.Comments, cancellationToken);
 
-                return ConvertToWorkItem(updated);
+                return await ConvertToWorkItem(updated, cancellationToken);
             }
             else
             {
                 // Create new work item
                 _logger.LogDebug("Creating new Azure DevOps work item");
-                var patchDocument = CreatePatchDocument(workItem, isUpdate: false);
+                var patchDocument = CreatePatchDocument(workItem, isUpdate: false, currentWorkItem: null);
                 var created = await _workItemClient.CreateWorkItemAsync(
                     patchDocument,
                     _config.Project,
@@ -167,7 +206,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
                 // Add comments if present
                 await SyncComments(created.Id!.Value, workItem.Comments, cancellationToken);
 
-                return ConvertToWorkItem(created);
+                return await ConvertToWorkItem(created, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -182,18 +221,33 @@ public class AzureDevOpsAdapter : ISyncAdapter
         if (_workItemClient == null || !comments.Any())
             return;
 
+        // Get existing comments from Azure DevOps
+        var existingComments = await _workItemClient.GetCommentsAsync(_config.Project, workItemId, cancellationToken: cancellationToken);
+        var existingTexts = new HashSet<string>(existingComments.Comments.Select(c => c.Text ?? string.Empty));
+
         foreach (var comment in comments)
         {
             try
             {
-                // Check if comment already exists by external ID
-                if (string.IsNullOrEmpty(comment.ExternalId))
+                // Only add comment if it doesn't already exist (check by text content)
+                if (!existingTexts.Contains(comment.Text))
                 {
-                    await _workItemClient.AddCommentAsync(
-                        new CommentCreate { Text = comment.Text },
+                    var commentCreate = new CommentCreate 
+                    { 
+                        Text = $"{comment.Text}\n\n_Added by {comment.Author} on {comment.CreatedDate:yyyy-MM-dd HH:mm}_"
+                    };
+                    
+                    var added = await _workItemClient.AddCommentAsync(
+                        commentCreate,
                         _config.Project,
                         workItemId,
                         cancellationToken: cancellationToken);
+                    
+                    _logger.LogInformation("Comment added to Azure DevOps work item {Id}", workItemId);
+                }
+                else
+                {
+                    _logger.LogDebug("Comment already exists in Azure DevOps work item {Id}, skipping", workItemId);
                 }
             }
             catch (Exception ex)
@@ -203,7 +257,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
         }
     }
 
-    private JsonPatchDocument CreatePatchDocument(Core.Models.WorkItem workItem, bool isUpdate)
+    private JsonPatchDocument CreatePatchDocument(Core.Models.WorkItem workItem, bool isUpdate, AzureWorkItem? currentWorkItem)
     {
         var patchDocument = new JsonPatchDocument();
 
@@ -221,7 +275,9 @@ public class AzureDevOpsAdapter : ISyncAdapter
             Value = workItem.Description
         });
 
-        if (!string.IsNullOrEmpty(workItem.State))
+        // Never update state field when updating existing work items to avoid validation errors
+        // Azure DevOps has complex state transition rules that vary by work item type
+        if (!isUpdate && !string.IsNullOrEmpty(workItem.State))
         {
             patchDocument.Add(new JsonPatchOperation
             {
@@ -265,7 +321,7 @@ public class AzureDevOpsAdapter : ISyncAdapter
         return patchDocument;
     }
 
-    private Core.Models.WorkItem ConvertToWorkItem(AzureWorkItem azureWorkItem)
+    private async Task<Core.Models.WorkItem> ConvertToWorkItem(AzureWorkItem azureWorkItem, CancellationToken cancellationToken = default)
     {
         var workItem = new Core.Models.WorkItem
         {
@@ -289,6 +345,36 @@ public class AzureDevOpsAdapter : ISyncAdapter
             if (externalIdTag != null)
             {
                 workItem.ExternalId = externalIdTag.Replace("ExternalId:", "").Trim();
+            }
+        }
+
+        // Load comments from Azure DevOps
+        if (_workItemClient != null && azureWorkItem.Id.HasValue)
+        {
+            try
+            {
+                var commentsResponse = await _workItemClient.GetCommentsAsync(
+                    _config.Project, 
+                    azureWorkItem.Id.Value, 
+                    cancellationToken: cancellationToken);
+
+                foreach (var azComment in commentsResponse.Comments)
+                {
+                    workItem.Comments.Add(new Core.Models.Comment
+                    {
+                        Id = azComment.Id.ToString(),
+                        Text = azComment.Text ?? string.Empty,
+                        Author = azComment.CreatedBy?.DisplayName ?? "Unknown",
+                        CreatedDate = azComment.CreatedDate,
+                        WorkItemId = workItem.Id,
+                        Source = SystemName,
+                        ExternalId = azComment.Id.ToString()
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load comments for work item {Id}", azureWorkItem.Id);
             }
         }
 

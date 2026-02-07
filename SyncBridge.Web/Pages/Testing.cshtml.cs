@@ -1,28 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
+using SyncBridge.Adapters.AzureDevOps;
+using SyncBridge.Adapters.Crm.Mock;
+using SyncBridge.Adapters.ServiceDeskPlus;
+using SyncBridge.Core.Configuration;
 using SyncBridge.Core.Interfaces;
 using SyncBridge.Core.Models;
 using SyncBridge.Core.Services;
+using System.Text.Json;
 
 namespace SyncBridge.Web.Pages;
 
 public class TestingModel : PageModel
 {
     private readonly ILogger<TestingModel> _logger;
-    private readonly IEnumerable<ISyncAdapter> _adapters;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly SyncEngine _syncEngine;
 
     public TestingModel(
         ILogger<TestingModel> logger,
-        IEnumerable<ISyncAdapter> adapters,
+        ILoggerFactory loggerFactory,
+        IHttpClientFactory httpClientFactory,
         SyncEngine syncEngine)
     {
         _logger = logger;
-        _adapters = adapters;
+        _loggerFactory = loggerFactory;
+        _httpClientFactory = httpClientFactory;
         _syncEngine = syncEngine;
     }
 
-    public IEnumerable<ISyncAdapter> Adapters => _adapters;
     public Dictionary<string, TestResult> ConnectionResults { get; set; } = new();
     public List<WorkItem> RetrievedItems { get; set; } = new();
 
@@ -30,11 +38,64 @@ public class TestingModel : PageModel
     {
     }
 
+    private List<ISyncAdapter> GetConfiguredAdapters()
+    {
+        var adapters = new List<ISyncAdapter>();
+
+        // Try to load Azure DevOps config from session
+        var azureConfigJson = HttpContext.Session.GetString("AzureDevOpsConfig");
+        AzureDevOpsConfig? azureConfig = null;
+        if (!string.IsNullOrEmpty(azureConfigJson))
+        {
+            azureConfig = JsonSerializer.Deserialize<AzureDevOpsConfig>(azureConfigJson);
+        }
+
+        if (azureConfig != null)
+        {
+            var adapterConfig = new AdapterConfiguration { AzureDevOps = azureConfig };
+            var options = Options.Create(adapterConfig);
+            adapters.Add(new AzureDevOpsAdapter(
+                _loggerFactory.CreateLogger<AzureDevOpsAdapter>(),
+                options));
+        }
+
+        // Try to load ServiceDesk Plus config from session
+        var serviceDeskJson = HttpContext.Session.GetString("ServiceDeskConfig");
+        ServiceDeskPlusConfig? serviceDeskConfig = null;
+        if (!string.IsNullOrEmpty(serviceDeskJson))
+        {
+            serviceDeskConfig = JsonSerializer.Deserialize<ServiceDeskPlusConfig>(serviceDeskJson);
+        }
+
+        if (serviceDeskConfig != null)
+        {
+            var adapterConfig = new AdapterConfiguration { ServiceDeskPlus = serviceDeskConfig };
+            var options = Options.Create(adapterConfig);
+            var httpClient = _httpClientFactory.CreateClient();
+            adapters.Add(new ServiceDeskPlusAdapter(
+                _loggerFactory.CreateLogger<ServiceDeskPlusAdapter>(),
+                options,
+                httpClient));
+        }
+
+        // Always add Mock CRM
+        adapters.Add(new MockCrmAdapter(_loggerFactory.CreateLogger<MockCrmAdapter>()));
+
+        return adapters;
+    }
+
     public async Task<IActionResult> OnPostTestConnectionsAsync()
     {
         ConnectionResults = new Dictionary<string, TestResult>();
+        var adapters = GetConfiguredAdapters();
 
-        foreach (var adapter in _adapters)
+        if (!adapters.Any())
+        {
+            TempData["Error"] = "No adapters configured. Please configure at least one adapter in the Configuration page.";
+            return Page();
+        }
+
+        foreach (var adapter in adapters)
         {
             try
             {
@@ -69,10 +130,11 @@ public class TestingModel : PageModel
     {
         try
         {
-            var adapter = _adapters.FirstOrDefault(a => a.SystemName == adapterName);
+            var adapters = GetConfiguredAdapters();
+            var adapter = adapters.FirstOrDefault(a => a.SystemName == adapterName);
             if (adapter == null)
             {
-                TempData["Error"] = $"Adapter '{adapterName}' not found.";
+                TempData["Error"] = $"Adapter '{adapterName}' not found or not configured.";
                 return RedirectToPage();
             }
 
@@ -105,14 +167,16 @@ public class TestingModel : PageModel
     {
         try
         {
-            if (_adapters.Count() < 2)
+            var adapters = GetConfiguredAdapters();
+            
+            if (adapters.Count < 2)
             {
-                TempData["Error"] = "At least 2 adapters are required for sync testing.";
+                TempData["Error"] = "At least 2 adapters are required for sync testing. Please configure Azure DevOps and/or ServiceDesk Plus.";
                 return RedirectToPage();
             }
 
-            var sourceAdapter = _adapters.First();
-            var targetAdapter = _adapters.Skip(1).First();
+            var sourceAdapter = adapters.First();
+            var targetAdapter = adapters.Skip(1).First();
 
             _logger.LogInformation("Testing sync between {Source} and {Target}",
                 sourceAdapter.SystemName, targetAdapter.SystemName);

@@ -35,10 +35,9 @@
                         <div class="mb-3">
                             <label class="form-label">Select Adapter</label>
                             <select class="form-select" name="adapterName">
-                                @foreach (var adapter in Model.Adapters)
-                                {
-                                    <option value="@adapter.SystemName">@adapter.SystemName</option>
-                                }
+                                <option value="AzureDevOps">Azure DevOps</option>
+                                <option value="ServiceDeskPlus">ServiceDesk Plus</option>
+                                <option value="MockCRM">Mock CRM</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-success w-100">
