@@ -58,6 +58,7 @@ appsettings.Production.json
 appsettings.Development.json
 **/appsettings.*.json
 !**/appsettings.json
+!**/appsettings.example.json
 
 # OS files
 .DS_Store
